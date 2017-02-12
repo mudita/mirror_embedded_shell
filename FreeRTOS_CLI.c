@@ -57,12 +57,14 @@ typedef struct xCOMMAND_INPUT_LIST
  * The callback function that is executed when "help" is entered.  This is the
  * only default command that is always present.
  */
-static BaseType_t prvHelpCommand( char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString );
+static BaseType_t prvHelpCommand(char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc );
 
 /*
  * Return the number of parameters that follow the command name.
  */
 static int8_t prvGetNumberOfParameters( const char *pcCommandString );
+
+static void prvPrepareParamBuffer(char cParamBuffer[SHELL_CMD_MAX_PARAM_NR][SHELL_CMD_MAX_PARAM_LEN] ,const char *pcCommandString );
 
 /* The definition of the "help" command.  This command is always at the front
 of the list of registered commands. */
@@ -92,6 +94,8 @@ reason, no attempt at providing mutual exclusion to the cOutputBuffer array is
 attempted. */
 static char cOutputBuffer[ configCOMMAND_INT_MAX_OUTPUT_SIZE ];
 
+/* Buffer that holds params given to the function. First param is always function's name. */
+static char cParamBuffer[SHELL_CMD_MAX_PARAM_NR][SHELL_CMD_MAX_PARAM_LEN];
 /*-----------------------------------------------------------*/
 
 BaseType_t FreeRTOS_CLIRegisterCommand( const CLI_Command_Definition_t * const pxCommandToRegister )
@@ -142,6 +146,8 @@ BaseType_t xReturn = pdTRUE;
 const char *pcRegisteredCommandString;
 size_t xCommandStringLength;
 
+uint8_t ParamNumber =0;
+
 	/* Note:  This function is not re-entrant.  It must not be called from more
 	thank one task. */
 
@@ -165,12 +171,28 @@ size_t xCommandStringLength;
 					number of parameters.  If cExpectedNumberOfParameters is -1,
 					then there could be a variable number of parameters and no
 					check is made. */
-					if( pxCommand->pxCommandLineDefinition->cExpectedNumberOfParameters >= 0 )
+
+					ParamNumber = prvGetNumberOfParameters( pcCommandInput );
+
+					if((ParamNumber < SHELL_CMD_MAX_PARAM_NR))
 					{
-						if( prvGetNumberOfParameters( pcCommandInput ) != pxCommand->pxCommandLineDefinition->cExpectedNumberOfParameters )
-						{
-							xReturn = pdFALSE;
+						/* Check if this is variable number of parameters */
+						if(pxCommand->pxCommandLineDefinition->cExpectedNumberOfParameters >= 0){
+
+							if(ParamNumber != pxCommand->pxCommandLineDefinition->cExpectedNumberOfParameters )
+							{
+								xReturn = pdFALSE;
+							}
+
 						}
+						/* variable number of parameters */
+						else{
+
+						}
+
+					}
+					else{
+						xReturn = pdFALSE;
 					}
 
 					break;
@@ -188,8 +210,12 @@ size_t xCommandStringLength;
 	}
 	else if( pxCommand != NULL )
 	{
+		/* Prepare line command buffer */
+		prvPrepareParamBuffer(cParamBuffer,pcCommandInput);
+
 		/* Call the callback function that is registered to this command. */
-		xReturn = pxCommand->pxCommandLineDefinition->pxCommandInterpreter( pcWriteBuffer, xWriteBufferLen, pcCommandInput );
+		/* passing ParamNumber is safe as function above took care of it*/
+		xReturn = pxCommand->pxCommandLineDefinition->pxCommandInterpreter( pcWriteBuffer, xWriteBufferLen, cParamBuffer, ParamNumber );
 
 		/* If xReturn is pdFALSE, then no further strings will be returned
 		after this one, and	pxCommand can be reset to NULL ready to search
@@ -272,12 +298,12 @@ const char *pcReturn = NULL;
 }
 /*-----------------------------------------------------------*/
 
-static BaseType_t prvHelpCommand( char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString )
+static BaseType_t prvHelpCommand(char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc )
 {
 static const CLI_Definition_List_Item_t * pxCommand = NULL;
 BaseType_t xReturn;
-
-	( void ) pcCommandString;
+	( void ) arg;
+	( void ) argc;
 
 	if( pxCommand == NULL )
 	{
@@ -310,6 +336,7 @@ static int8_t prvGetNumberOfParameters( const char *pcCommandString )
 int8_t cParameters = 0;
 BaseType_t xLastCharacterWasSpace = pdFALSE;
 
+
 	/* Count the number of space delimited words in pcCommandString. */
 	while( *pcCommandString != 0x00 )
 	{
@@ -339,5 +366,20 @@ BaseType_t xLastCharacterWasSpace = pdFALSE;
 	/* The value returned is one less than the number of space delimited words,
 	as the first word should be the command itself. */
 	return cParameters;
+}
+
+static void prvPrepareParamBuffer(char cParamBuffer[SHELL_CMD_MAX_PARAM_NR][SHELL_CMD_MAX_PARAM_LEN] ,const char *pcCommandString )
+{
+	/* Clear param buffer */
+	memset(cParamBuffer,0,sizeof(cParamBuffer[0])*SHELL_CMD_MAX_PARAM_NR);
+
+	char* pch;
+	uint8_t param_cnt = 0;
+	pch = strtok ((char*)pcCommandString," ");
+	while (pch != NULL)
+	{
+		strcpy(cParamBuffer[param_cnt++],pch);
+		pch = strtok (NULL, " ");
+	}
 }
 

@@ -91,55 +91,6 @@ void shell_RegisterIOFunctions(shell_t* shell,
 
 }
 
-void shell_RegisterCmdTab(shell_t* shell, cmd_entry_t* cmd_tab, size_t ele) {
-	uint8_t i;
-
-	SHELL_ASSERT(shell != NULL);
-	SHELL_ASSERT(cmd_tab != NULL);
-	SHELL_ASSERT(ele <= SHELL_MAX_NR_REGISTERED_COMMANDS);
-
-	for (i = 0; i < ele; i++) {
-
-		shell->cmd_etab[i] = &cmd_tab[i];
-
-	}
-}
-
-sherr_t shell_AddCmdTab(shell_t* shell, cmd_entry_t* cmd_tab, size_t ele) {
-
-	SHELL_ASSERT(shell !=NULL);
-	SHELL_ASSERT(cmd_tab !=NULL);
-	uint8_t i = 0;
-	sherr_t ret;
-
-	for (i = 0; i < SHELL_MAX_NR_REGISTERED_COMMANDS; i++) { //look for first empty
-
-		if (shell->cmd_etab[i] == NULL)
-			break;
-
-	}
-
-	if (i == SHELL_MAX_NR_REGISTERED_COMMANDS)	// cmd_tab full
-		ret = SHELL_ERR_TAB_FULL;
-	else if ((SHELL_MAX_NR_REGISTERED_COMMANDS - i) >= (uint8_t)ele) {
-		uint8_t j;
-
-		for (j = 0; j < ele; j++, i++) {
-
-			shell->cmd_etab[i] = &cmd_tab[j];
-
-		}
-
-		ret = SHELL_OK;
-	} else { // there is not enough space for append
-		ret = SHELL_ERR_SPACE;
-
-	}
-
-	return ret;
-
-}
-
 
 static const char* shell_ReturnLineBuff(shell_t* shell)
 {
@@ -242,6 +193,35 @@ static void shell_send_escape_sequence(shell_t* shell,const char* byte) {
 	shell->write(buff, sizeof(buff));
 }
 
+static void shell_NL_Action(shell_t* shell)
+{
+	shell_write_newline(shell);
+
+	/* If line buffer is empty it means that user typed only enter without providing command */
+	if(strcmp(shell_ReturnLineBuff(shell),"\0") != 0){
+		/* Add typed cmd into history list only if it is new element
+		 * (we don't want to have several the same commands stored in history list) */
+		history_list_AddBeg(&history,shell_ReturnLineBuff(shell));
+
+		BaseType_t ret;
+		do
+		{
+			ret = FreeRTOS_CLIProcessCommand(shell_ReturnLineBuff(shell),response_output_buff,SHELL_MAX_OUTPUT_BUFFER_SIZE);
+
+			/* Output cmd response if any */
+			shell->write(response_output_buff, strlen(response_output_buff));
+
+			shell_write_newline(shell);
+
+		}while(ret != pdFALSE );
+
+	}
+
+	shell_write_prompt(shell);
+	shell_MngtLineBuff(shell, NULL, LINE_BUFF_CLEAR_WHOLE);
+}
+
+
 void shell_RunPeriodic(shell_t* shell) {
 
 	SHELL_ASSERT(shell != NULL);
@@ -266,31 +246,8 @@ void shell_RunPeriodic(shell_t* shell) {
 		 * New Line
 		 */
 		else if (*shell->newline_code == byte) {
-			shell_write_newline(shell);
 
-			/* If line buffer is empty it means that user typed only enter without providing command */
-			if(strcmp(shell_ReturnLineBuff(shell),"\0") != 0){
-				/* Add typed cmd into history list only if it is new element
-				 * (we don't want to have several the same commands stored in history list) */
-				history_list_AddBeg(&history,shell_ReturnLineBuff(shell));
-
-				BaseType_t ret;
-				do
-				{
-					ret = FreeRTOS_CLIProcessCommand(shell_ReturnLineBuff(shell),response_output_buff,SHELL_MAX_OUTPUT_BUFFER_SIZE);
-
-					/* Output cmd response if any */
-					shell->write(response_output_buff, strlen(response_output_buff));
-
-					shell_write_newline(shell);
-
-				}while(ret != pdFALSE );
-
-			}
-
-			shell_write_prompt(shell);
-			shell_MngtLineBuff(shell, NULL, LINE_BUFF_CLEAR_WHOLE);
-
+			shell_NL_Action(shell);
 		}
 		/*
 		 * Backspace
@@ -345,6 +302,10 @@ void shell_RunPeriodic(shell_t* shell) {
 		else if ((byte >= 0x20) && (byte <= 0x7E))
 		{
 			if (shell_MngtLineBuff(shell, &byte, LINE_BUFF_ADD_CHAR) == LINE_BUFF_OK) {
+
+				/* Authorization procedure */
+
+
 				shell->write(&byte, sizeof(byte));
 
 			} else {

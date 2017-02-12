@@ -61,12 +61,15 @@ typedef uint8_t UBaseType_t;
 #define taskEXIT_CRITICAL(X)
 #endif
 
+
+typedef char argv[][SHELL_CMD_MAX_PARAM_LEN];
+
 /* The prototype to which callback functions used to process command line
 commands must comply.  pcWriteBuffer is a buffer into which the output from
 executing the command can be written, xWriteBufferLen is the length, in bytes of
 the pcWriteBuffer buffer, and pcCommandString is the entire string as input by
 the user (from which parameters can be extracted).*/
-typedef BaseType_t (*pdCOMMAND_LINE_CALLBACK)( char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString );
+typedef BaseType_t (*pdCOMMAND_LINE_CALLBACK)( char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc );
 
 /* The structure that defines command line commands.  A command line command
 should be defined by declaring a const structure of this type. */

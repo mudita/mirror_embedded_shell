@@ -13,6 +13,9 @@
 #define SHELL_MAX_NR_REGISTERED_COMMANDS	50
 #define SHELL_CMD_HISTORY_DEPTH	10
 
+#define SHELL_CMD_MAX_PARAM_NR	10
+#define SHELL_CMD_MAX_PARAM_LEN	10
+
 #define SHELL_ASSERT(X)	assert(X)
 
 /* Only for standalone version of shell. Otherwise comment define below ! */

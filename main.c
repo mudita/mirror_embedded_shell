@@ -11,13 +11,28 @@
 #include <stdio.h>
 #include <string.h>
 
-BaseType_t test_callback( char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString ){
+BaseType_t test_callback(char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc  ){
+
+	uint8_t i =0;
+
+	for(i=0;i<argc;i++){
+		printf(&arg[i][0]);
+	}
+	fflush(stdout);
+
 	strcpy(pcWriteBuffer,"testowy command dziala !");
 
 	return pdFALSE;
 }
 
-shell_cmd_t test_cmd = {"test","testowy cmd",test_callback,1};
+BaseType_t test1_callback( char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc ){
+	strcpy(pcWriteBuffer,"testowy1 command dziala !");
+
+	return pdFALSE;
+}
+
+shell_cmd_t test_cmd = {"test","testowy cmd",test_callback,SHELL_CMD_VARIABLE_PARAM_NR};
+shell_cmd_t test1_cmd = {"test1","testowy cmd1",test1_callback,4};
 
 static FILE* input;
 static FILE* output;
@@ -73,6 +88,7 @@ int main(void)
 	shell_RegisterIOFunctions(&shell,write_std,read_std);
 
 	shell_RegisterCmd(&test_cmd);
+	shell_RegisterCmd(&test1_cmd);
 
 
 	for(;;)

@@ -1,2 +1,2 @@
-test
-help
+test 500 300 kopa 
+help hehe hoho hoho hoo

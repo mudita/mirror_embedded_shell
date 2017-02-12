@@ -1,7 +1,0 @@
-test
-Incorrect command parameter(s).  Enter "help" to view a list of available commands.
->help
-help:
- Lists all the registered commands
-testowy cmd
->
