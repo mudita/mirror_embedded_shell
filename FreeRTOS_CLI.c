@@ -185,10 +185,6 @@ uint8_t ParamNumber =0;
 							}
 
 						}
-						/* variable number of parameters */
-						else{
-
-						}
 
 					}
 					else{
@@ -211,10 +207,11 @@ uint8_t ParamNumber =0;
 	else if( pxCommand != NULL )
 	{
 		/* Prepare line command buffer */
+		/* It is safe to call this function cause number of params passed have been already checked hence
+		 * there is no chance of buffer overflow etc. */
 		prvPrepareParamBuffer(cParamBuffer,pcCommandInput);
 
 		/* Call the callback function that is registered to this command. */
-		/* passing ParamNumber is safe as function above took care of it*/
 		xReturn = pxCommand->pxCommandLineDefinition->pxCommandInterpreter( pcWriteBuffer, xWriteBufferLen, cParamBuffer, ParamNumber );
 
 		/* If xReturn is pdFALSE, then no further strings will be returned
@@ -313,7 +310,10 @@ BaseType_t xReturn;
 
 	/* Return the next command help string, before moving the pointer on to
 	the next command in the list. */
-	strncpy( pcWriteBuffer, pxCommand->pxCommandLineDefinition->pcHelpString, xWriteBufferLen );
+	strncpy( pcWriteBuffer, pxCommand->pxCommandLineDefinition->pcCommand,xWriteBufferLen);
+	/*TODO ogarnac formatowanie helpa w ladny sposob */
+	//strcat(pcWriteBuffer, "->");
+	//strcat( pcWriteBuffer, pxCommand->pxCommandLineDefinition->pcHelpString);
 	pxCommand = pxCommand->pxNext;
 
 	if( pxCommand == NULL )

@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 
-BaseType_t test_callback(char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc  ){
+BaseType_t test_callback(char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc,shell_t* shell ){
 
 	uint8_t i =0;
 
@@ -25,7 +25,7 @@ BaseType_t test_callback(char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, 
 	return pdFALSE;
 }
 
-BaseType_t test1_callback( char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc ){
+BaseType_t test1_callback( char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc,shell_t* shell){
 	strcpy(pcWriteBuffer,"testowy1 command dziala !");
 
 	return pdFALSE;

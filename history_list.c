@@ -21,14 +21,7 @@ void history_list_Init(hlist_t *const inst, uint32_t max_items_nr)
 	inst->items_nr = 0;
 	inst->max_items_nr = max_items_nr;
 
-	inst->llist_current = inst->llist_end = inst->llist_beg = NULL;//malloc(sizeof(struct llist_t));
-
-/*	inst->llist_beg->dptr = malloc(2);
-	*inst->llist_beg->dptr = 0xFE;
-	*(inst->llist_beg->dptr +1) = '\0';
-
-	inst->llist_current->next = NULL;
-	inst->llist_current->prev = NULL;*/
+	inst->llist_current = inst->llist_end = inst->llist_beg = NULL;
 }
 
 
@@ -75,44 +68,6 @@ void history_list_AddBeg(hlist_t *const inst,const char* dptr)
 
 	new_entryflag = true;
 }
-
-/*void history_list_AddBeg(hlist_t *const inst,const char* dptr)
-{
-	// add to list only if string passed is different than newest entry
-	if(strcmp(inst->llist_beg->dptr,dptr) !=0)
-	{
-		if(inst->items_nr == inst->max_items_nr)// we've reached maximum capacity of history list
-		{
-			//remove last position from list
-			struct llist_t* temp_prev = inst->llist_end->prev->prev;
-
-			free(inst->llist_end->prev->dptr);
-			free(inst->llist_end->prev);
-
-			temp_prev->next = inst->llist_end;
-			inst->llist_end->prev = temp_prev;
-		}
-		else
-		{
-			inst->items_nr++;
-		}
-
-		struct llist_t* temp_beg = inst->llist_beg;
-
-		struct llist_t* new_beg = malloc(sizeof(struct llist_t));
-
-		temp_beg->prev = new_beg;
-		new_beg->prev = NULL;
-		new_beg->next = temp_beg;
-
-		new_beg->dptr = malloc(strlen(dptr) + 1);
-		strcpy(new_beg->dptr,dptr);
-
-		inst->llist_beg = new_beg;
-		inst->llist_current = inst->llist_beg;
-
-	}
-}*/
 
 const char* history_list_TraverseUp(hlist_t *const inst)
 {

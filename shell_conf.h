@@ -16,10 +16,16 @@
 #define SHELL_CMD_MAX_PARAM_NR	10
 #define SHELL_CMD_MAX_PARAM_LEN	10
 
+#define SHELL_MAX_PASSWORD_LEN	128
+
 #define SHELL_ASSERT(X)	assert(X)
 
 /* Only for standalone version of shell. Otherwise comment define below ! */
 #define SHELL_NO_FREERTOS
 #define SHELL_MAX_OUTPUT_BUFFER_SIZE	128
 
+
+#if (SHELL_MAX_PASSWORD_LEN > SHELL_MAX_OUTPUT_BUFFER_SIZE)
+#error "Shell password musn't be longer than SHELL_MAX_OUTPUT_BUFFER_SIZE"
+#endif
 #endif /* MODULES_SHELL_SHELL_CONF_H_ */

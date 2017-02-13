@@ -1,0 +1,14 @@
+pass1
+Please type password:pass2
+Please type password:pass3
+Please type password:pass
+>test
+testowy command dziala !
+>help
+help
+password
+test
+test1
+>password kopadupa
+test1
+>

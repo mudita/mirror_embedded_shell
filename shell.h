@@ -20,6 +20,11 @@ typedef uint8_t (*shell_read_t)(char* str);
 
 typedef CLI_Command_Definition_t shell_cmd_t;
 
+typedef enum {
+	AUTH_IN_PROGRESS = 1,
+	AUTH_PASSED = 2
+}auth_action;
+
 typedef struct _shell {
 
 	void* hist_queue;
@@ -31,6 +36,8 @@ typedef struct _shell {
 
 	shell_write_t write;
 	shell_read_t read;
+
+	auth_action auth_state;
 
 	const char *bs_code;
 	const char *newline_code;
