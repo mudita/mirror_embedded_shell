@@ -16,15 +16,18 @@
 
 /* Codes below are platform/device specific.*/
 const char  shell_BS = 0x7F;
-const char* shell_NEWLINE = "\n";
+const char* shell_NEWLINE = "\r\n";
 const char* shell_ARROW_LEFT = "D";
 const char* shell_ARROW_RIGHT = "C";
 const char* shell_ARROW_UP = "A";
 const char* shell_ARROW_DOWN = "B";
+const char* shell_start_of_escape_seq = "\e";
+const char* shell_CLEAR_LINE ="2K";
 /* Prompt code */
 const char* shell_prompt = ">";
 const char* shell_auth_prompt = "Please type password:";
 const char* shell_auth_failed_prompt = "Wrong password!:";
+const char* shell_logout_succes = "Logout success";
 
 typedef enum {
 	LINE_BUFF_OK = 0,
@@ -40,36 +43,42 @@ typedef enum {
 	LINE_BUFF_BS = 1,
 	LINE_BUFF_CLEAR_WHOLE = 2,
 	LINE_BUFF_POS_LEFT = 3,
-	LINE_BUFF_POS_RIGHT = 4
+	LINE_BUFF_POS_RIGHT = 4,
+	LINE_BUFF_ADD_STR	= 5
 } lbuff_action;
 
 
 /* Forward declarations */
-static void shell_send_escape_sequence(shell_t* shell, const char* byte);
+static void shell_write_clearline(shell_t* shell);
+static void shell_write_escape_sequence(shell_t* shell, const char* byte);
 static const char* shell_ReturnLineBuff(shell_t* shell);
 static void encryptDecrypt(const char* toEncrypt,char* encrypted);
+static void shell_write_prompt(shell_t* shell);
 
 static BaseType_t password_callback(char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc  );
+static BaseType_t logout_callback(char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc  );
 
 uint8_t shell_RegisterCmd( const shell_cmd_t * const pxCommandToRegister );
 
 static hlist_t history = {0};
 static char response_output_buff[SHELL_MAX_OUTPUT_BUFFER_SIZE] = {0};
 
-static char password_buff[SHELL_MAX_PASSWORD_LEN];
-static uint16_t buff_pos = 0;
 
 /* Password is shared between shell instances for example:
  * If you created one instance of shell for local interface(RS/UART) and one for TELNET
  * the password will be the same for both instances. */
-char shell_password[SHELL_MAX_PASSWORD_LEN];
+static char shell_password[SHELL_MAX_PASSWORD_LEN];
 
+static auth_action auth_state;
+
+static char read_buffer[SHELL_READ_BUFFER_LEN];
 
 /**
  Basic common commands
  */
 
-shell_cmd_t password_cmd = {"password","Change password",password_callback,1};
+static shell_cmd_t password_cmd = {"password","	password -> Changes password",password_callback,1};
+static shell_cmd_t logout_cmd = {"logout","	logout -> Logout from console",logout_callback,0};
 
 /* Cmd to set new password */
 static BaseType_t password_callback(char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc  ){
@@ -81,6 +90,19 @@ static BaseType_t password_callback(char *pcWriteBuffer, size_t xWriteBufferLen,
 	}else{
 		sprintf(pcWriteBuffer,"Password too long !");
 	}
+	return pdFALSE;
+}
+
+/* Cmd to logout from console*/
+static BaseType_t logout_callback(char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc  ){
+
+	(void) xWriteBufferLen;
+	(void) argc;
+	(void) arg;
+
+	auth_state = AUTH_IN_PROGRESS;
+	strcpy(pcWriteBuffer,shell_logout_succes);
+
 	return pdFALSE;
 }
 
@@ -104,9 +126,9 @@ sherr_t shell_Init(shell_t* shell, size_t linebuf_len) {
 	shell->arrowd_code = (char*) shell_ARROW_DOWN;
 	shell->arrowl_code = (char*) shell_ARROW_LEFT;
 	shell->arrowr_code = (char*) shell_ARROW_RIGHT;
-	shell->arrowu_code = (char*) shell_ARROW_DOWN;
+	shell->arrowu_code = (char*) shell_ARROW_UP;
 
-	shell->auth_state = AUTH_IN_PROGRESS;
+	auth_state = AUTH_IN_PROGRESS;
 
 	/* Only for tests */
 	encryptDecrypt("pass",shell_password);
@@ -114,6 +136,7 @@ sherr_t shell_Init(shell_t* shell, size_t linebuf_len) {
 	/* Register common basic commands */
 
 	shell_RegisterCmd(&password_cmd);
+	shell_RegisterCmd(&logout_cmd);
 
 	return SHELL_OK;
 
@@ -137,6 +160,35 @@ void shell_RegisterIOFunctions(shell_t* shell,
 
 }
 
+void shell_PassParam(shell_t* shell,void* param, size_t param_len)
+{
+	//TODO: this function has to be thread safe also whole shell module will have to be adapted
+	// to multi-thread environment
+
+	// some kind of mutex
+	memcpy(shell->param,param,param_len);
+}
+
+
+ // inserts into subject[] at position pos
+static void append(char subject[], const char insert[], int pos) {
+    char buf[100] = {0}; // 100 so that it's big enough. fill with zeros
+    // or you could use malloc() to allocate sufficient space
+    // e.g. char *buf = (char*)malloc(strlen(subject) + strlen(insert) + 2);
+    // to fill with zeros: memset(buf, 0, 100);
+
+    strncpy(buf, subject, pos); // copy at most first pos characters
+    int len = strlen(buf);
+    strcpy(buf+len, insert); // copy all of insert[] at the end
+    len += strlen(insert);  // increase the length by length of insert[]
+    strcpy(buf+len, subject+pos); // copy the rest
+
+    strcpy(subject, buf);   // copy it back to subject
+    // Note that subject[] must be big enough, or else segfault.
+    // deallocate buf[] here, if used malloc()
+    // e.g. free(buf);
+}
+
 static void encryptDecrypt(const char* toEncrypt,char* encrypted) {
     char key = 'K'; //Any char will work
 
@@ -151,7 +203,7 @@ static const char* shell_ReturnLineBuff(shell_t* shell)
 	return shell->line_buff;
 }
 
-static lbuff_e shell_MngtLineBuff(shell_t* shell, char* byte,
+static lbuff_e shell_MngtLineBuff(shell_t* shell,const char* str, uint32_t str_len,
 		lbuff_action action) {
 
 	lbuff_e ret = LINE_BUFF_UNSPECIFIED_CMD;
@@ -159,14 +211,39 @@ static lbuff_e shell_MngtLineBuff(shell_t* shell, char* byte,
 	switch (action) {
 
 	case LINE_BUFF_ADD_CHAR:
-		if (shell->line_buff_pos > shell->line_buff_size) {
+		if (shell->line_buff_pos >= shell->line_buff_size) {
 			shell->line_buff_pos = 0;
 			memset(shell->line_buff, 0, shell->line_buff_size);	// clear character buffer
 			shell->line_buff[0] = '\0';
 			ret = LINE_BUFF_FULL;
-		} else {
-			shell->line_buff[shell->line_buff_pos] = *byte;
+		}
+		/* User moved cursor and now it points somewhere between beg and end of linebuff */
+		else if (shell->line_buff_pos < strlen(shell->line_buff)){
+
+			if (strlen(shell->line_buff) >= shell->line_buff_size) {
+				ret = LINE_BUFF_FULL;
+			}else{
+				ret = LINE_BUFF_OK;
+
+				append(shell->line_buff,str,shell->line_buff_pos);
+				shell_write_clearline(shell);
+				shell->write("\r",1,shell->param);
+				shell_write_prompt(shell);
+
+				shell->write(shell->line_buff,strlen(shell->line_buff),shell->param);
+
+				uint32_t temp2 = strlen(shell->line_buff) - shell->line_buff_pos;
+				while(temp2--){
+					shell_write_escape_sequence(shell, shell->arrowl_code);
+				}
+				shell->line_buff_pos++;
+			}
+		}
+
+		else {
+			shell->line_buff[shell->line_buff_pos] = *str;
 			shell->line_buff_pos++;
+			shell->line_buff[shell->line_buff_pos] = '\0';
 			if (shell->line_buff_pos == strlen(shell->line_buff)) {
 				shell->line_buff[shell->line_buff_pos] = '\0';
 			}
@@ -178,8 +255,28 @@ static lbuff_e shell_MngtLineBuff(shell_t* shell, char* byte,
 	case LINE_BUFF_BS:
 		if (shell->line_buff_pos > 0) {
 
-			shell->line_buff[shell->line_buff_pos - 1] = '\0';
+			uint32_t curr_pos_temp = shell->line_buff_pos;
+			uint32_t temp = shell->line_buff_pos - 1;
+			uint32_t line_buff_len = strlen(shell->line_buff);
+
+			/* Move characters on the right in line buffer */
+			while(temp != line_buff_len){
+				shell->line_buff[temp] = shell->line_buff[temp+1];
+				temp++;
+			}
+			shell_write_clearline(shell);
+			shell->write("\r",1,shell->param);
+			shell_write_prompt(shell);
+
+			shell->write(shell->line_buff,strlen(shell->line_buff),shell->param);
+
+			uint32_t temp2 = line_buff_len - curr_pos_temp;
+			while(temp2--){
+				shell_write_escape_sequence(shell, shell->arrowl_code);
+			}
+
 			shell->line_buff_pos--;
+
 			ret = LINE_BUFF_OK;
 		} else {
 			ret = LINE_BUFF_EMPTY;
@@ -201,7 +298,7 @@ static lbuff_e shell_MngtLineBuff(shell_t* shell, char* byte,
 			return LINE_BUFF_REACH_MIN;
 		} else {
 			shell->line_buff_pos--;
-			shell_send_escape_sequence(shell, shell->arrowl_code);
+			shell_write_escape_sequence(shell, shell->arrowl_code);
 			ret = LINE_BUFF_OK;
 		}
 		break;
@@ -212,11 +309,32 @@ static lbuff_e shell_MngtLineBuff(shell_t* shell, char* byte,
 			ret = LINE_BUFF_REACH_MAX;
 		} else {
 			shell->line_buff_pos++;
-			shell_send_escape_sequence(shell, shell->arrowr_code);
+			shell_write_escape_sequence(shell, shell->arrowr_code);
 			ret = LINE_BUFF_OK;
 		}
 
 		break;
+
+	case LINE_BUFF_ADD_STR:
+
+		if(str_len <= shell->line_buff_size){
+
+			/* Clear current terminal cmd. */
+			shell_write_clearline(shell);
+			shell->write("\r",1,shell->param);
+			shell_write_prompt(shell);
+
+			shell->line_buff_pos = 0;
+			memset(shell->line_buff, 0, shell->line_buff_size);	// clear character buffer
+			shell->line_buff[0] = '\0';
+
+			memcpy(shell->line_buff,str,str_len);
+			shell->line_buff_pos +=str_len;
+			shell->write(str,str_len,shell->param);
+		}
+
+		break;
+
 
 	default:
 		ret = LINE_BUFF_UNSPECIFIED_CMD;
@@ -229,22 +347,28 @@ static lbuff_e shell_MngtLineBuff(shell_t* shell, char* byte,
 }
 
 static void shell_write_newline(shell_t* shell) {
-	shell->write(shell->newline_code, strlen(shell->newline_code));
+	shell->write(shell->newline_code, strlen(shell->newline_code),shell->param);
 	//shell->write(shell->line_prefix, strlen(shell->line_prefix));
 
 }
 
 static void shell_write_prompt(shell_t* shell) {
-	shell->write(shell->line_prompt, strlen(shell->line_prompt));
+	shell->write(shell->line_prompt, strlen(shell->line_prompt),shell->param);
 
 }
 
-static void shell_send_escape_sequence(shell_t* shell,const char* byte) {
+static void shell_write_escape_sequence(shell_t* shell,const char* byte) {
 
-	char buff[3] = { 0x1B, '[', 0 };
+	char buff[4] = { *shell_start_of_escape_seq, '[', 0,'\0' };
 
 	buff[2] = *byte;
-	shell->write(buff, sizeof(buff));
+	shell->write(buff, sizeof(buff),shell->param);
+}
+static void shell_write_clearline(shell_t* shell) {
+
+	char buff[5] = { *shell_start_of_escape_seq, '[', *shell_CLEAR_LINE,*(shell_CLEAR_LINE+1),'\0' };
+
+	shell->write(buff, sizeof(buff),shell->param);
 }
 
 static void shell_NL_Action(shell_t* shell)
@@ -263,45 +387,54 @@ static void shell_NL_Action(shell_t* shell)
 			ret = FreeRTOS_CLIProcessCommand(shell_ReturnLineBuff(shell),response_output_buff,SHELL_MAX_OUTPUT_BUFFER_SIZE);
 
 			/* Output cmd response if any */
-			shell->write(response_output_buff, strlen(response_output_buff));
-
-			shell_write_newline(shell);
-
+			if(response_output_buff[0] != '\0'){
+				shell->write(response_output_buff, strlen(response_output_buff),shell->param);
+				shell_write_newline(shell);
+			}
 		}while(ret != pdFALSE );
 
 	}
 
 	shell_write_prompt(shell);
-	shell_MngtLineBuff(shell, NULL, LINE_BUFF_CLEAR_WHOLE);
+	shell_MngtLineBuff(shell, NULL,0, LINE_BUFF_CLEAR_WHOLE);
 }
 
 /* When authorization is in progress do not echo typed keys.
  *  */
 static void shell_auth_inprogress(shell_t* shell,char byte)
 {
-
+	static char password_buff[SHELL_MAX_PASSWORD_LEN] ={0};
+	static uint16_t buff_pos = 0;
+	char encrypted_pass[SHELL_MAX_PASSWORD_LEN] ={0};
 	/* During login user pressed enter */
 	if(byte == *shell->newline_code){
 		/* Check if password stored in internal buffer match one saved in NVM/RAM memory */
 
-		char encrypted_pass[SHELL_MAX_PASSWORD_LEN] ={0};
+
 		encryptDecrypt(password_buff,encrypted_pass);
 
 		/* password is already encrypted */
-		if(memcmp(encrypted_pass,shell_password,buff_pos) == 0){
+		if(memcmp(encrypted_pass,shell_password,strlen(shell_password)) == 0){
 			/* User passed correct password */
 			shell_write_newline(shell);
 			shell_write_prompt(shell);
-			shell->auth_state = AUTH_PASSED;
+			auth_state = AUTH_PASSED;
+
+			/* Clear temporary buffers*/
+			buff_pos = 0;
+			memset(password_buff,0,sizeof(password_buff));
+			memset(encrypted_pass,0,sizeof(encrypted_pass));
 		}
 		else{
 
 		 	/* Send prompt if passwords didn't match */
 			shell_write_newline(shell);
-			shell->write(shell_auth_prompt,strlen(shell_auth_prompt));
+			shell->write(shell_auth_prompt,strlen(shell_auth_prompt),shell->param);
 
+			/* Clear temporary buffers*/
 			buff_pos = 0;
 			memset(password_buff,0,sizeof(password_buff));
+			memset(encrypted_pass,0,sizeof(encrypted_pass));
 
 		}
 
@@ -310,16 +443,18 @@ static void shell_auth_inprogress(shell_t* shell,char byte)
 		if ((byte >= 0x20) && (byte <= 0x7E))
 		{
 			if(buff_pos < SHELL_MAX_PASSWORD_LEN){
-				shell->write(&byte,1);
+				shell->write(&byte,1,shell->param);
 				password_buff[buff_pos++] = byte;
 			}else{
 
 			 	/* Send prompt if passwords didn't match */
 				shell_write_newline(shell);
-				shell->write(shell_auth_prompt,strlen(shell_auth_prompt));
+				shell->write(shell_auth_prompt,strlen(shell_auth_prompt),shell->param);
 
+				/* Clear temporary buffers*/
 				buff_pos = 0;
 				memset(password_buff,0,sizeof(password_buff));
+				memset(encrypted_pass,0,sizeof(encrypted_pass));
 			}
 		}
 	}
@@ -332,7 +467,7 @@ static void shell_auth_passed(shell_t* shell,char byte)
 	/*
 	 * Start of escape sequence
 	 */
-	if (byte == 0x1B){
+	if (byte == *shell_start_of_escape_seq){
 		escape_sequence_start = 1;
 	}
 	else if ((escape_sequence_start == 1) && (byte == '[')) {
@@ -349,12 +484,7 @@ static void shell_auth_passed(shell_t* shell,char byte)
 	 * Backspace
 	 */
 	else if (*shell->bs_code == byte) {
-
-		if (shell_MngtLineBuff(shell, NULL, LINE_BUFF_BS) == LINE_BUFF_OK) {
-			shell->write(shell->bs_code, 1);
-		} else {
-			// do nothing, there is nothing to clear inside line buff
-		}
+		shell_MngtLineBuff(shell, NULL,0, LINE_BUFF_BS);
 	}
 	/*
 	 * Arrow UP
@@ -362,7 +492,10 @@ static void shell_auth_passed(shell_t* shell,char byte)
 	else if ((*shell->arrowu_code == byte) && (escape_sequence_start == 1)) {
 		escape_sequence_start = 0;
 
-		history_list_TraverseUp(&history);
+		const char* dptr = history_list_TraverseUp(&history);
+		if(dptr != NULL){
+			shell_MngtLineBuff(shell,dptr,strlen(dptr),LINE_BUFF_ADD_STR);
+		}
 
 	}
 	/*
@@ -371,7 +504,10 @@ static void shell_auth_passed(shell_t* shell,char byte)
 	else if ((*shell->arrowd_code == byte) && (escape_sequence_start == 1)) {
 		escape_sequence_start = 0;
 
-		history_list_TraverseDown(&history);
+		const char* dptr = history_list_TraverseDown(&history);
+		if(dptr != NULL){
+			shell_MngtLineBuff(shell,dptr,strlen(dptr),LINE_BUFF_ADD_STR);
+		}
 
 	}
 	/*
@@ -380,8 +516,7 @@ static void shell_auth_passed(shell_t* shell,char byte)
 	else if ((*shell->arrowl_code == byte) && (escape_sequence_start == 1)) {
 		escape_sequence_start = 0;
 
-		shell_MngtLineBuff(shell, NULL, LINE_BUFF_POS_LEFT);
-
+		shell_MngtLineBuff(shell, NULL,0, LINE_BUFF_POS_LEFT);
 	}
 	/*
 	 * Arrow RIGHT
@@ -389,51 +524,57 @@ static void shell_auth_passed(shell_t* shell,char byte)
 	else if ((*shell->arrowr_code == byte) && (escape_sequence_start == 1)) {
 		escape_sequence_start = 0;
 
-		shell_MngtLineBuff(shell, NULL, LINE_BUFF_POS_RIGHT);
-
+		shell_MngtLineBuff(shell, NULL,0, LINE_BUFF_POS_RIGHT);
 	}
 	/*
 	 * All ascii characters available from standard keyboard
 	 */
 	else if ((byte >= 0x20) && (byte <= 0x7E))
 	{
-		if (shell_MngtLineBuff(shell, &byte, LINE_BUFF_ADD_CHAR) == LINE_BUFF_OK) {
+		if (shell_MngtLineBuff(shell, &byte,1, LINE_BUFF_ADD_CHAR) == LINE_BUFF_OK) {
 
-			shell->write(&byte, sizeof(byte));
+			shell->write(&byte, sizeof(byte),shell->param);
 
 		} else {
 			// line buffer full, clear it and then proceed to next line
-			shell_MngtLineBuff(shell, NULL, LINE_BUFF_CLEAR_WHOLE); // clears line buff
+			shell_MngtLineBuff(shell, NULL,0, LINE_BUFF_CLEAR_WHOLE); // clears line buff
 			shell_write_newline(shell);
 			shell_write_prompt(shell);
 		}
-
 	}
 
 }
-
 
 void shell_RunPeriodic(shell_t* shell) {
 
 	SHELL_ASSERT(shell != NULL);
 
-	char byte;
+	uint32_t len=0;
 
 	/* Read method can be either blocking or non-blocking */
-	shell->read(&byte);
+	shell->read(read_buffer,&len,shell->param);
 
-	if (byte != 0) {
+	uint32_t i;
 
-		switch(shell->auth_state)
-		{
-		case AUTH_IN_PROGRESS:
-			shell_auth_inprogress(shell,byte);
-			break;
-		case AUTH_PASSED:
-			shell_auth_passed(shell,byte);
-			break;
+	/* Received block of data can be longer than 1 byte but no bigger than SHELL_READ_BUFFER_LEN.
+	 * In this case split entire buffer into separate characters and process them one by one. */
+	for(i=0;i<len;++i){
+
+		if (read_buffer[i] != '\0') {
+
+			switch(auth_state)
+			{
+			case AUTH_IN_PROGRESS:
+				shell_auth_inprogress(shell,read_buffer[i]);
+				break;
+			case AUTH_PASSED:
+				shell_auth_passed(shell,read_buffer[i]);
+				break;
+			}
+
 		}
-
 	}
+
+
 
 }

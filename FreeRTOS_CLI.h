@@ -54,13 +54,14 @@ typedef uint8_t UBaseType_t;
 #define pdPASS	1
 #define pdTRUE	pdPASS
 #define pdFALSE	pdFAIL
-#define configCOMMAND_INT_MAX_OUTPUT_SIZE	SHELL_MAX_OUTPUT_BUFFER_SIZE
+
 #define configASSERT SHELL_ASSERT
 #define pvPortMalloc	malloc
 #define taskENTER_CRITICAL(X)
 #define taskEXIT_CRITICAL(X)
 #endif
 
+#define configCOMMAND_INT_MAX_OUTPUT_SIZE	SHELL_MAX_OUTPUT_BUFFER_SIZE
 
 typedef char argv[][SHELL_CMD_MAX_PARAM_LEN];
 

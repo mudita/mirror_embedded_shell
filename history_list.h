@@ -15,7 +15,6 @@ struct llist_t
 	struct llist_t* prev;
 	struct llist_t* next;
 	char* dptr;
-
 };
 
 
@@ -34,6 +33,7 @@ void history_list_Init(hlist_t *const inst, uint32_t max_items_nr);
 void history_list_AddBeg(hlist_t *const inst,const char* dptr);
 const char* history_list_TraverseUp(hlist_t *const inst);
 const char* history_list_TraverseDown(hlist_t *const inst);
+void history_list_SetBeg(hlist_t *const inst);
 
 
 

@@ -5,10 +5,10 @@ Please type password:pass
 >test
 testowy command dziala !
 >help
-help
-password
-test
-test1
+	help -> Lists all the registered commands
+	password -> Changes password
+	logout -> Logout from console
+	test -> testowy cmd
+	test1 -> testowy cmd1
 >password kopadupa
-test1
 >

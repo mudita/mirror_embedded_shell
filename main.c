@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 
-BaseType_t test_callback(char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc,shell_t* shell ){
+BaseType_t test_callback(char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc){
 
 	uint8_t i =0;
 
@@ -25,29 +25,32 @@ BaseType_t test_callback(char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, 
 	return pdFALSE;
 }
 
-BaseType_t test1_callback( char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc,shell_t* shell){
+BaseType_t test1_callback( char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc){
 	strcpy(pcWriteBuffer,"testowy1 command dziala !");
 
 	return pdFALSE;
 }
 
-shell_cmd_t test_cmd = {"test","testowy cmd",test_callback,SHELL_CMD_VARIABLE_PARAM_NR};
-shell_cmd_t test1_cmd = {"test1","testowy cmd1",test1_callback,4};
+shell_cmd_t test_cmd = {"test","	test -> testowy cmd",test_callback,SHELL_CMD_VARIABLE_PARAM_NR};
+shell_cmd_t test1_cmd = {"test1","	test1 -> testowy cmd1",test1_callback,4};
 
 static FILE* input;
 static FILE* output;
 
-uint8_t write_std(const char* str, size_t len)
+uint8_t write_std(const char* str, size_t len,void* param)
 {
 	(void)len;
+	(void)param;
 	size_t cnt =0;
 	fwrite(str,1,len,output);
 	return 0;
 }
 
-uint8_t read_std(char* str)
+uint8_t read_std(char* str,uint32_t* len, void* param)
 {
- char byte  = 0;
+	(void) param;
+	char byte  = 0;
+
 	byte = fgetc(input);
 
 	if(byte == EOF)// end of file
@@ -58,6 +61,7 @@ uint8_t read_std(char* str)
 		exit(1);
 	}else{
 		*str =byte;
+		*len = 1;
 	}
 
 	return 0;

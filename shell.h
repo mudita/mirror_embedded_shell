@@ -15,8 +15,19 @@
 
 #define SHELL_CMD_VARIABLE_PARAM_NR	-1
 
-typedef uint8_t (*shell_write_t)(const char* str, size_t len);
-typedef uint8_t (*shell_read_t)(char* str);
+/**
+ *  Prototype for shell_write function.
+ *  str - string to be written
+ *  len - string length
+ *  param - generic pointer to pass/ret user's data to/from function */
+typedef uint8_t (*shell_write_t)(const char* str, size_t len, void* param);
+
+/**
+ * Prototype for shell_read function
+ * str - string read
+ * param - generic pointer to pass/ret user's data to/from function
+ */
+typedef uint8_t (*shell_read_t)(char* str,uint32_t* len, void* param);
 
 typedef CLI_Command_Definition_t shell_cmd_t;
 
@@ -32,12 +43,11 @@ typedef struct _shell {
 	char* line_prompt;
 	char* line_buff;
 	uint32_t line_buff_pos;
+	//uint32_t line_buff_current_size;
 	size_t line_buff_size;
 
 	shell_write_t write;
 	shell_read_t read;
-
-	auth_action auth_state;
 
 	const char *bs_code;
 	const char *newline_code;
@@ -45,6 +55,8 @@ typedef struct _shell {
 	const char *arrowr_code;
 	const char *arrowu_code;
 	const char *arrowd_code;
+
+	void* param;
 
 } shell_t;
 
@@ -66,10 +78,12 @@ sherr_t shell_Init(shell_t* shell, size_t linebuf_len);
 uint8_t shell_RegisterCmd( const shell_cmd_t * const pxCommandToRegister );
 
 void shell_RegisterIOFunctions(shell_t* shell,
-		uint8_t (*shell_write)(const char* str, size_t len),
-		uint8_t (*shell_read)(char* str_out));
+		shell_write_t write,
+		shell_read_t read);
 
 void shell_RunPeriodic(shell_t* shell);
+
+void shell_PassParam(shell_t* shell,void* param, size_t param_len);
 
 
 

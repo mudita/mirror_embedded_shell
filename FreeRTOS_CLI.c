@@ -71,7 +71,7 @@ of the list of registered commands. */
 static const CLI_Command_Definition_t xHelpCommand =
 {
 	"help",
-	"help:\r\n Lists all the registered commands",
+	"	help -> Lists all the registered commands",
 	prvHelpCommand,
 	0
 };
@@ -211,6 +211,9 @@ uint8_t ParamNumber =0;
 		 * there is no chance of buffer overflow etc. */
 		prvPrepareParamBuffer(cParamBuffer,pcCommandInput);
 
+		/* Fill command response buffer with end-line characters */
+		memset(pcWriteBuffer,'\0',xWriteBufferLen);
+
 		/* Call the callback function that is registered to this command. */
 		xReturn = pxCommand->pxCommandLineDefinition->pxCommandInterpreter( pcWriteBuffer, xWriteBufferLen, cParamBuffer, ParamNumber );
 
@@ -310,10 +313,8 @@ BaseType_t xReturn;
 
 	/* Return the next command help string, before moving the pointer on to
 	the next command in the list. */
-	strncpy( pcWriteBuffer, pxCommand->pxCommandLineDefinition->pcCommand,xWriteBufferLen);
-	/*TODO ogarnac formatowanie helpa w ladny sposob */
-	//strcat(pcWriteBuffer, "->");
-	//strcat( pcWriteBuffer, pxCommand->pxCommandLineDefinition->pcHelpString);
+	strncpy( pcWriteBuffer, pxCommand->pxCommandLineDefinition->pcHelpString,xWriteBufferLen);
+
 	pxCommand = pxCommand->pxNext;
 
 	if( pxCommand == NULL )

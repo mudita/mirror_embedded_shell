@@ -15,6 +15,7 @@
 
 /* This flag is used for announcing to traverse functions that new entry has been added. */
 static bool new_entryflag = false;
+static bool doubled_entryflag = false;
 
 void history_list_Init(hlist_t *const inst, uint32_t max_items_nr)
 {
@@ -24,11 +25,12 @@ void history_list_Init(hlist_t *const inst, uint32_t max_items_nr)
 	inst->llist_current = inst->llist_end = inst->llist_beg = NULL;
 }
 
-
 void history_list_AddBeg(hlist_t *const inst,const char* dptr)
 {
 	/* If new string is the same as the current position of history list omit it. */
-	if(inst->llist_current != NULL && strcmp(dptr,inst->llist_current->dptr) == 0){
+	if(inst->llist_current != NULL && strcmp(dptr,inst->llist_beg->dptr) == 0){
+		inst->llist_current = inst->llist_beg;
+		//doubled_entryflag = true;
 		return;
 	}
 
@@ -71,7 +73,8 @@ void history_list_AddBeg(hlist_t *const inst,const char* dptr)
 
 const char* history_list_TraverseUp(hlist_t *const inst)
 {
-	SHELL_ASSERT(inst->llist_current != NULL);
+	if(inst->llist_current == NULL)
+		return NULL;
 
 	/* Is this the oldest element from the list ? */
 	if(inst->llist_current->next != NULL){
@@ -81,7 +84,11 @@ const char* history_list_TraverseUp(hlist_t *const inst)
 			char* temp = inst->llist_current->dptr;
 			inst->llist_current = inst->llist_current->next;
 			return temp;
-		}else{
+		}
+		else if(doubled_entryflag == true){
+			doubled_entryflag = false;
+		}
+		else{
 			/* We are in the middle of the list so traverse one element up(older) then print it.
 			 * In case of reaching the oldest element(end of the list) just print it without moving node pointer.*/
 			 if(new_entryflag == false) inst->llist_current = inst->llist_current->next;
@@ -95,7 +102,9 @@ const char* history_list_TraverseUp(hlist_t *const inst)
 
 const char* history_list_TraverseDown(hlist_t *const inst)
 {
-	SHELL_ASSERT(inst->llist_current != NULL);
+	if(inst->llist_current == NULL){
+		return NULL;
+	}
 
 	/* We are not at the beginning of history list.
 	 * First traverse one element down(newer) then print it */
