@@ -171,22 +171,24 @@ void shell_PassParam(shell_t* shell,void* param, size_t param_len)
 
 
  // inserts into subject[] at position pos
-static void append(char subject[], const char insert[], int pos) {
-    char buf[100] = {0}; // 100 so that it's big enough. fill with zeros
-    // or you could use malloc() to allocate sufficient space
-    // e.g. char *buf = (char*)malloc(strlen(subject) + strlen(insert) + 2);
-    // to fill with zeros: memset(buf, 0, 100);
+static void append(uint32_t buf_size,char subject[], const char insert[], uint32_t pos) {
+    char* buf = NULL;
+
+    /* Allocating memory is not good idea. Better use static buffer*/
+    buf = calloc(buf_size,sizeof(char));
+
+    if(buf == NULL){
+    	return;
+    }
 
     strncpy(buf, subject, pos); // copy at most first pos characters
-    int len = strlen(buf);
+    size_t len = strlen(buf);
     strcpy(buf+len, insert); // copy all of insert[] at the end
     len += strlen(insert);  // increase the length by length of insert[]
     strcpy(buf+len, subject+pos); // copy the rest
 
     strcpy(subject, buf);   // copy it back to subject
-    // Note that subject[] must be big enough, or else segfault.
-    // deallocate buf[] here, if used malloc()
-    // e.g. free(buf);
+    free(buf);
 }
 
 static void encryptDecrypt(const char* toEncrypt,char* encrypted) {
@@ -225,7 +227,7 @@ static lbuff_e shell_MngtLineBuff(shell_t* shell,const char* str, uint32_t str_l
 			}else{
 				ret = LINE_BUFF_OK;
 
-				append(shell->line_buff,str,shell->line_buff_pos);
+				append(shell->line_buff_size,shell->line_buff,str,shell->line_buff_pos);
 				shell_write_clearline(shell);
 				shell->write("\r",1,shell->param);
 				shell_write_prompt(shell);
