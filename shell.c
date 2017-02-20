@@ -14,6 +14,8 @@
 #include "history_list.h"
 #include "FreeRTOS_CLI.h"
 
+#define SHOW_PASSWORD	0
+
 /* Codes below are platform/device specific.*/
 const char  shell_BS = 0x7F;
 const char* shell_NEWLINE = "\r\n";
@@ -72,6 +74,8 @@ static char shell_password[SHELL_MAX_PASSWORD_LEN];
 static auth_action auth_state;
 
 static char read_buffer[SHELL_READ_BUFFER_LEN];
+
+static char* linebuff_temp = NULL;
 
 /**
  Basic common commands
@@ -138,7 +142,16 @@ sherr_t shell_Init(shell_t* shell, size_t linebuf_len) {
 	shell_RegisterCmd(&password_cmd);
 	shell_RegisterCmd(&logout_cmd);
 
-	return SHELL_OK;
+
+	linebuff_temp = calloc(shell->line_buff_size,sizeof(char));
+
+	if(linebuff_temp == NULL){
+		return SHELL_ERR_MEM;
+	}else{
+		return SHELL_OK;
+	}
+
+
 
 }
 
@@ -172,23 +185,16 @@ void shell_PassParam(shell_t* shell,void* param, size_t param_len)
 
  // inserts into subject[] at position pos
 static void append(uint32_t buf_size,char subject[], const char insert[], uint32_t pos) {
-    char* buf = NULL;
 
-    /* Allocating memory is not good idea. Better use static buffer*/
-    buf = calloc(buf_size,sizeof(char));
+	memset(linebuff_temp,0,buf_size);
 
-    if(buf == NULL){
-    	return;
-    }
-
-    strncpy(buf, subject, pos); // copy at most first pos characters
-    size_t len = strlen(buf);
-    strcpy(buf+len, insert); // copy all of insert[] at the end
+    strncpy(linebuff_temp, subject, pos); // copy at most first pos characters
+    size_t len = strlen(linebuff_temp);
+    strcpy(linebuff_temp+len, insert); // copy all of insert[] at the end
     len += strlen(insert);  // increase the length by length of insert[]
-    strcpy(buf+len, subject+pos); // copy the rest
+    strcpy(linebuff_temp+len, subject+pos); // copy the rest
 
-    strcpy(subject, buf);   // copy it back to subject
-    free(buf);
+    strcpy(subject, linebuff_temp);   // copy it back to subject
 }
 
 static void encryptDecrypt(const char* toEncrypt,char* encrypted) {
@@ -445,7 +451,9 @@ static void shell_auth_inprogress(shell_t* shell,char byte)
 		if ((byte >= 0x20) && (byte <= 0x7E))
 		{
 			if(buff_pos < SHELL_MAX_PASSWORD_LEN){
+#if SHOW_PASSWORD == 1
 				shell->write(&byte,1,shell->param);
+#endif
 				password_buff[buff_pos++] = byte;
 			}else{
 
