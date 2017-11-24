@@ -5,6 +5,7 @@
  *      Author: MateuszPiesta
  */
 
+#include <cmds/common_cmds.h>
 #include "shell.h"
 #include "shell_conf.h"
 #include "shell_platform_conf.h"
@@ -15,6 +16,7 @@
 #include "history_list.h"
 #include "FreeRTOS_CLI.h"
 #include "platform/platform.h"
+#include "common.h"
 
 #define SHOW_PASSWORD	0
 
@@ -23,7 +25,6 @@
 const char* shell_prompt = ">";
 const char* shell_auth_prompt = "Please type password:";
 const char* shell_auth_failed_prompt = "Wrong password!:";
-const char* shell_logout_succes = "Logout success";
 
 typedef enum {
 	LINE_BUFF_OK = 0,
@@ -48,62 +49,21 @@ typedef enum {
 static void shell_write_clearline(shell_t* shell);
 static void shell_write_escape_sequence(shell_t* shell, const char* byte);
 static const char* shell_ReturnLineBuff(shell_t* shell);
-static void encryptDecrypt(const char* toEncrypt,char* encrypted);
 static void shell_write_prompt(shell_t* shell);
 
-static BaseType_t password_callback(char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc  );
-static BaseType_t logout_callback(char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc  );
+
 
 uint8_t shell_RegisterCmd( const shell_cmd_t * const pxCommandToRegister );
 
 static hlist_t history = {0};
 static char response_output_buff[SHELL_MAX_OUTPUT_BUFFER_SIZE] = {0};
 
-
-/* Password is shared between shell instances for example:
- * If you created one instance of shell for local interface(RS/UART) and one for TELNET
- * the password will be the same for both instances. */
-static char shell_password[SHELL_MAX_PASSWORD_LEN];
-
-static auth_action auth_state;
-
 static char read_buffer[SHELL_READ_BUFFER_LEN];
 
 static char* linebuff_temp = NULL;
 
-/**
- Basic common commands
- */
-
-static shell_cmd_t password_cmd = {"passwd","	password -> Changes password",password_callback,1};
-static shell_cmd_t logout_cmd = {"logout","	logout -> Logout from console",logout_callback,0};
-
-/* Cmd to set new password */
-static BaseType_t password_callback(char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc  ){
-
-	(void) xWriteBufferLen;
-	(void) argc;
-	uint16_t len = strlen(&arg[1][0]);
-
-	if((len <= SHELL_MAX_PASSWORD_LEN) && (len > 3)){
-		encryptDecrypt(&arg[1][0],shell_password);
-	}else{
-		sprintf(pcWriteBuffer,"Password cannot be longer than %ud and shorter than 3!",SHELL_MAX_PASSWORD_LEN);
-	}
-	return pdFALSE;
-}
-
-/* Cmd to logout from console*/
-static BaseType_t logout_callback(char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc  ){
-
-	(void) xWriteBufferLen;
-	(void) argc;
-	(void) arg;
-	auth_state = AUTH_IN_PROGRESS;
-	strcpy(pcWriteBuffer,shell_logout_succes);
-
-	return pdFALSE;
-}
+extern char shell_password[SHELL_MAX_PASSWORD_LEN];
+extern auth_action auth_state;
 
 void shell_InitPlatform(shell_t* shell)
 {
@@ -201,15 +161,6 @@ static void append(uint32_t buf_size,char subject[], const char insert[], uint32
 
     strcpy(subject, linebuff_temp);   // copy it back to subject
 }
-
-static void encryptDecrypt(const char* toEncrypt,char* encrypted) {
-    char key = 'K'; //Any char will work
-
-    for (uint16_t i = 0; i < strlen(toEncrypt); i++)
-        encrypted[i] = toEncrypt[i] ^ key;
-
-}
-
 
 static const char* shell_ReturnLineBuff(shell_t* shell)
 {

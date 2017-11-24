@@ -11,7 +11,7 @@
 #include "../../shell.h"
 
 
-#if PLATFORM_PLATFORM_LINUX
+#ifdef PLATFORM_LINUX
 
 void platform_init()
 {

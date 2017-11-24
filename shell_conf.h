@@ -23,7 +23,7 @@
 /* Only for standalone version of shell. Otherwise comment define below ! */
 #define SHELL_NO_FREERTOS
 
-#define SHELL_MAX_OUTPUT_BUFFER_SIZE	128
+#define SHELL_MAX_OUTPUT_BUFFER_SIZE	1024
 #define SHELL_READ_BUFFER_LEN	32
 
 #ifndef SHELL_NO_FREERTOS

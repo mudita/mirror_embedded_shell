@@ -16,7 +16,9 @@
 #elif defined(PLATFORM_LINUX)
 #include "linux/platform_linux.h"
 #elif defined(PLATFORM_WINDOWS)
-#include "linux/platform_win.h"
+#include "windows/platform_win.h"
+#elif defined(PLATFORM_SEMIHOST)
+#include "semihost/platform_semihost.h"
 #elif defined(PLATFORM_EXT_IMPLEMENTATION)
 #pragma message "Remember to invoke shell_RegisterIOFunctions() in order to register read/write functions"
 #else
