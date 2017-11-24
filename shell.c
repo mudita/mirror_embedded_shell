@@ -99,7 +99,6 @@ static BaseType_t logout_callback(char *pcWriteBuffer, size_t xWriteBufferLen, a
 	(void) xWriteBufferLen;
 	(void) argc;
 	(void) arg;
-
 	auth_state = AUTH_IN_PROGRESS;
 	strcpy(pcWriteBuffer,shell_logout_succes);
 
@@ -426,9 +425,10 @@ static void shell_auth_inprogress(shell_t* shell,char byte)
 
 
 		encryptDecrypt(password_buff,encrypted_pass);
-
+		uint32_t pass_typed_len = strlen(password_buff);
+		uint32_t pass_stored_len = strlen(shell_password);
 		/* password is already encrypted */
-		if(memcmp(encrypted_pass,shell_password,strlen(password_buff)) == 0){
+		if( (pass_typed_len == pass_stored_len)  &&(memcmp(encrypted_pass,shell_password,pass_typed_len) == 0) ){
 			/* User passed correct password */
 			shell_write_newline(shell);
 			shell_write_prompt(shell);
