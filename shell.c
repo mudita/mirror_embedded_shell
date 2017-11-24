@@ -7,6 +7,7 @@
 
 #include "shell.h"
 #include "shell_conf.h"
+#include "shell_platform_conf.h"
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -74,7 +75,7 @@ static char* linebuff_temp = NULL;
  Basic common commands
  */
 
-static shell_cmd_t password_cmd = {"password","	password -> Changes password",password_callback,1};
+static shell_cmd_t password_cmd = {"passwd","	password -> Changes password",password_callback,1};
 static shell_cmd_t logout_cmd = {"logout","	logout -> Logout from console",logout_callback,0};
 
 /* Cmd to set new password */
@@ -143,6 +144,10 @@ sherr_t shell_Init(shell_t* shell, size_t linebuf_len) {
 	shell_RegisterCmd(&password_cmd);
 	shell_RegisterCmd(&logout_cmd);
 
+
+#ifndef PLATFORM_EXT_IMPLEMENTATION
+	shell_InitPlatform(shell);
+#endif
 
 	linebuff_temp = calloc(shell->line_buff_size,sizeof(char));
 
@@ -423,7 +428,7 @@ static void shell_auth_inprogress(shell_t* shell,char byte)
 		encryptDecrypt(password_buff,encrypted_pass);
 
 		/* password is already encrypted */
-		if(memcmp(encrypted_pass,shell_password,strlen(shell_password)) == 0){
+		if(memcmp(encrypted_pass,shell_password,strlen(password_buff)) == 0){
 			/* User passed correct password */
 			shell_write_newline(shell);
 			shell_write_prompt(shell);
