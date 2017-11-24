@@ -13,18 +13,11 @@
 #include <stdlib.h>
 #include "history_list.h"
 #include "FreeRTOS_CLI.h"
+#include "platform/platform.h"
 
 #define SHOW_PASSWORD	0
 
-/* Codes below are platform/device specific.*/
-const char  shell_BS = 0x7F;
-const char* shell_NEWLINE = "\r\n";
-const char* shell_ARROW_LEFT = "D";
-const char* shell_ARROW_RIGHT = "C";
-const char* shell_ARROW_UP = "A";
-const char* shell_ARROW_DOWN = "B";
-const char* shell_start_of_escape_seq = "\e";
-const char* shell_CLEAR_LINE ="2K";
+
 /* Prompt code */
 const char* shell_prompt = ">";
 const char* shell_auth_prompt = "Please type password:";
@@ -89,10 +82,12 @@ static BaseType_t password_callback(char *pcWriteBuffer, size_t xWriteBufferLen,
 
 	(void) xWriteBufferLen;
 	(void) argc;
-	if(strlen(&arg[1][0]) <= SHELL_MAX_PASSWORD_LEN){
+	uint16_t len = strlen(&arg[1][0]);
+
+	if((len <= SHELL_MAX_PASSWORD_LEN) && (len > 3)){
 		encryptDecrypt(&arg[1][0],shell_password);
 	}else{
-		sprintf(pcWriteBuffer,"Password too long !");
+		sprintf(pcWriteBuffer,"Password cannot be longer than %ud and shorter than 3!",SHELL_MAX_PASSWORD_LEN);
 	}
 	return pdFALSE;
 }
@@ -110,6 +105,12 @@ static BaseType_t logout_callback(char *pcWriteBuffer, size_t xWriteBufferLen, a
 	return pdFALSE;
 }
 
+void shell_InitPlatform(shell_t* shell)
+{
+	platform_init();
+	shell_RegisterIOFunctions(shell,platform_write,platform_read);
+}
+
 sherr_t shell_Init(shell_t* shell, size_t linebuf_len) {
 
 	SHELL_ASSERT(shell != NULL);
@@ -125,12 +126,12 @@ sherr_t shell_Init(shell_t* shell, size_t linebuf_len) {
 	history_list_Init(&history,SHELL_CMD_HISTORY_DEPTH);
 
 	shell->line_prompt = (char*) shell_prompt;
-	shell->bs_code = (char*) &shell_BS;
-	shell->newline_code = (char*) shell_NEWLINE;
-	shell->arrowd_code = (char*) shell_ARROW_DOWN;
-	shell->arrowl_code = (char*) shell_ARROW_LEFT;
-	shell->arrowr_code = (char*) shell_ARROW_RIGHT;
-	shell->arrowu_code = (char*) shell_ARROW_UP;
+	shell->bs_code = (char*) &platform_shell_BS;
+	shell->newline_code = (char*) platform_shell_NEWLINE;
+	shell->arrowd_code = (char*) platform_shell_ARROW_DOWN;
+	shell->arrowl_code = (char*) platform_shell_ARROW_LEFT;
+	shell->arrowr_code = (char*) platform_shell_ARROW_RIGHT;
+	shell->arrowu_code = (char*) platform_shell_ARROW_UP;
 
 	auth_state = AUTH_IN_PROGRESS;
 
@@ -367,14 +368,14 @@ static void shell_write_prompt(shell_t* shell) {
 
 static void shell_write_escape_sequence(shell_t* shell,const char* byte) {
 
-	char buff[4] = { *shell_start_of_escape_seq, '[', 0,'\0' };
+	char buff[4] = { *platform_shell_start_of_escape_seq, '[', 0,'\0' };
 
 	buff[2] = *byte;
 	shell->write(buff, sizeof(buff),shell->param);
 }
 static void shell_write_clearline(shell_t* shell) {
 
-	char buff[5] = { *shell_start_of_escape_seq, '[', *shell_CLEAR_LINE,*(shell_CLEAR_LINE+1),'\0' };
+	char buff[5] = { *platform_shell_start_of_escape_seq, '[', *platform_shell_CLEAR_LINE,*(platform_shell_CLEAR_LINE+1),'\0' };
 
 	shell->write(buff, sizeof(buff),shell->param);
 }
@@ -477,7 +478,7 @@ static void shell_auth_passed(shell_t* shell,char byte)
 	/*
 	 * Start of escape sequence
 	 */
-	if (byte == *shell_start_of_escape_seq){
+	if (byte == *platform_shell_start_of_escape_seq){
 		escape_sequence_start = 1;
 	}
 	else if ((escape_sequence_start == 1) && (byte == '[')) {

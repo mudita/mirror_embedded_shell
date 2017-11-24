@@ -74,6 +74,8 @@ typedef enum{
 
 sherr_t shell_Init(shell_t* shell, size_t linebuf_len);
 
+void shell_InitPlatform(shell_t* shell);
+
 
 uint8_t shell_RegisterCmd( const shell_cmd_t * const pxCommandToRegister );
 
