@@ -27,7 +27,7 @@ static const char* shell_logout_succes = "Logout success";
  Basic common commands
  */
 
-shell_cmd_t password_cmd = {"passwd","	password -> Changes password",password_callback,1};
+shell_cmd_t password_cmd = {"passwd","	passwd -> Changes password",password_callback,1};
 shell_cmd_t logout_cmd = {"logout","	logout -> Logout from console",logout_callback,0};
 
 /* Cmd to set new password */
