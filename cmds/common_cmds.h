@@ -10,11 +10,7 @@
 
 #include "shell.h"
 
-BaseType_t logout_callback(char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc  );
-BaseType_t password_callback(char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc  );
-
-
-shell_cmd_t password_cmd;
-shell_cmd_t logout_cmd;
+shell_cmd_t common_cmds_tab[];
+size_t common_cmds_tabsize;
 
 #endif /* COMMON_CMDS_H_ */

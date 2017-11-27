@@ -23,15 +23,28 @@
 /* Only for standalone version of shell. Otherwise comment define below ! */
 #define SHELL_NO_FREERTOS
 
+/**
+ * Buffer used for printing command responses etc
+ */
 #define SHELL_MAX_OUTPUT_BUFFER_SIZE	1024
+
+
+/**
+ * Buffer used for handling data received in packs. For example someone could paste command into terminal instead typing it.
+ */
 #define SHELL_READ_BUFFER_LEN	32
+
+/**
+ * Set to 1 if you want to use file system commands
+ */
+#define SHELL_USE_FS	1
 
 #ifndef SHELL_NO_FREERTOS
 #include "FreeRTOS.h"
 #include "task.h"
 #endif
 
-#if (SHELL_MAX_PASSWORD_LEN > SHELL_MAX_OUTPUT_BUFFER_SIZE)
-#error "Shell password musn't be longer than SHELL_MAX_OUTPUT_BUFFER_SIZE"
+#if (SHELL_MAX_PASSWORD_LEN > SHELL_READ_BUFFER_LEN)
+#error "Shell password musn't be longer than SHELL_READ_BUFFER_LEN"
 #endif
 #endif /* MODULES_SHELL_SHELL_CONF_H_ */

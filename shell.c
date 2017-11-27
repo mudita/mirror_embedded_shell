@@ -6,6 +6,7 @@
  */
 
 #include <cmds/common_cmds.h>
+#include <cmds/fs_cmds.h>
 #include "shell.h"
 #include "shell_conf.h"
 #include "shell_platform_conf.h"
@@ -51,9 +52,19 @@ static void shell_write_escape_sequence(shell_t* shell, const char* byte);
 static const char* shell_ReturnLineBuff(shell_t* shell);
 static void shell_write_prompt(shell_t* shell);
 
-
-
 uint8_t shell_RegisterCmd( const shell_cmd_t * const pxCommandToRegister );
+
+
+#ifdef PLATFORM_EXT_IMPLEMENTATION
+char  platform_shell_BS = '\b';
+char* platform_shell_NEWLINE = "\n";
+char* platform_shell_ARROW_LEFT = "D";
+char* platform_shell_ARROW_RIGHT = "C";
+char* platform_shell_ARROW_UP = "A";
+char* platform_shell_ARROW_DOWN = "B";
+char* platform_shell_start_of_escape_seq = "\e";
+char* platform_shell_CLEAR_LINE ="2K";
+#endif
 
 static hlist_t history = {0};
 static char response_output_buff[SHELL_MAX_OUTPUT_BUFFER_SIZE] = {0};
@@ -95,13 +106,22 @@ sherr_t shell_Init(shell_t* shell, size_t linebuf_len) {
 
 	auth_state = AUTH_IN_PROGRESS;
 
-	/* Only for tests */
+	/*TODO: Only for tests */
 	encryptDecrypt("pass",shell_password);
 
 	/* Register common basic commands */
 
-	shell_RegisterCmd(&password_cmd);
-	shell_RegisterCmd(&logout_cmd);
+	uint8_t cnt = 0;
+
+	for(cnt=0;cnt<common_cmds_tabsize;cnt++){
+		shell_RegisterCmd(&common_cmds_tab[cnt]);
+	}
+
+#if (SHELL_USE_FS == 1)
+	for(cnt=0;cnt<fs_cmds_tab_size;cnt++){
+		shell_RegisterCmd(&fs_cmds_tab[cnt]);
+	}
+#endif
 
 
 #ifndef PLATFORM_EXT_IMPLEMENTATION
@@ -318,7 +338,6 @@ static void shell_write_newline(shell_t* shell) {
 
 static void shell_write_prompt(shell_t* shell) {
 	shell->write(shell->line_prompt, strlen(shell->line_prompt),shell->param);
-
 }
 
 static void shell_write_escape_sequence(shell_t* shell,const char* byte) {
@@ -509,6 +528,13 @@ static void shell_auth_passed(shell_t* shell,char byte)
 			shell_write_prompt(shell);
 		}
 	}
+	//CTRL + U == clear line to prompt
+	else if(byte == '\025'){
+		shell_MngtLineBuff(shell, NULL,0, LINE_BUFF_CLEAR_WHOLE); // clears line buff
+		shell_write_clearline(shell);
+		shell->write("\r",1,shell->param);
+		shell_write_prompt(shell);
+	}
 
 }
 
@@ -520,6 +546,14 @@ void shell_RunPeriodic(shell_t* shell) {
 
 	/* Read method can be either blocking or non-blocking */
 	shell->read(read_buffer,&len,shell->param);
+
+
+	if(len > SHELL_READ_BUFFER_LEN){
+		shell_MngtLineBuff(shell, NULL,0, LINE_BUFF_CLEAR_WHOLE); // clears line buff
+		shell_write_newline(shell);
+		shell_write_prompt(shell);
+		return;
+	}
 
 	uint32_t i;
 

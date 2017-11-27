@@ -30,7 +30,7 @@ void history_list_AddBeg(hlist_t *const inst,const char* dptr)
 	/* If new string is the same as the current position of history list omit it. */
 	if(inst->llist_current != NULL && strcmp(dptr,inst->llist_beg->dptr) == 0){
 		inst->llist_current = inst->llist_beg;
-		//doubled_entryflag = true;
+		doubled_entryflag = true;
 		return;
 	}
 
@@ -118,7 +118,8 @@ const char* history_list_TraverseDown(hlist_t *const inst)
 	 * The only we can(and have to !) do is print this entry onto console */
 	else
 	{
-		new_entryflag = false;
-		return inst->llist_current->dptr;
+		//new_entryflag = false;
+		//return inst->llist_current->dptr;
+		return NULL;
 	}
 }

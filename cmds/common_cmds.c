@@ -23,15 +23,25 @@ auth_action auth_state;
 
 static const char* shell_logout_succes = "Logout success";
 
+
+static BaseType_t password_callback(char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc  );
+
+/* Cmd to logout from console*/
+static BaseType_t logout_callback(char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc  );
+
 /**
  Basic common commands
  */
 
-shell_cmd_t password_cmd = {"passwd","	passwd -> Changes password",password_callback,1};
-shell_cmd_t logout_cmd = {"logout","	logout -> Logout from console",logout_callback,0};
+shell_cmd_t common_cmds_tab[] = {
+		{"passwd","	passwd -> Changes password",password_callback,1},
+		{"logout","	logout -> Logout from console",logout_callback,0}
+};
+
+size_t common_cmds_tabsize = sizeof(common_cmds_tab)/sizeof(common_cmds_tab[0]);
 
 /* Cmd to set new password */
-BaseType_t password_callback(char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc  ){
+static BaseType_t password_callback(char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc  ){
 
 	(void) xWriteBufferLen;
 	(void) argc;
@@ -46,7 +56,7 @@ BaseType_t password_callback(char *pcWriteBuffer, size_t xWriteBufferLen, argv a
 }
 
 /* Cmd to logout from console*/
-BaseType_t logout_callback(char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc  ){
+static BaseType_t logout_callback(char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc  ){
 
 	(void) xWriteBufferLen;
 	(void) argc;
