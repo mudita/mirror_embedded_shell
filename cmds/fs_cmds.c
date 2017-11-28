@@ -5,7 +5,9 @@
  *      Author: mati
  */
 
+
 #include <stdio.h>
+#include "../platform/platform.h"
 #include <string.h>
 #include "fs_cmds.h"
 
@@ -25,8 +27,23 @@ shell_cmd_t fs_cmds_tab[] ={
 
 size_t fs_cmds_tab_size = sizeof(fs_cmds_tab)/sizeof(fs_cmds_tab[0]);
 
+
+static char path_buff[512] = {0};
+
 static BaseType_t ls_callback(char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc  )
 {
+    DIR *dp;
+    struct dirent *dirp;
+
+    getcwd_fs(path_buff,sizeof(path_buff));
+
+    if ((dp = opendir_fs(path_buff)) == NULL)
+        return pdFALSE;
+
+    while ((dirp = readdir_fs(dp)) != NULL){
+    	pcWriteBuffer += sprintf(pcWriteBuffer,"%s\n",dirp->d_name);
+    }
+    closedir_fs(dp);
 	return pdFALSE;
 }
 
@@ -34,17 +51,19 @@ static BaseType_t cat_callback(char *pcWriteBuffer, size_t xWriteBufferLen, argv
 {
 	FILE* fd = NULL;
 
-	fd = fopen(arg[1],"r");
+	fd = open_fs(arg[1],"r");
 
 	if(fd != NULL){
-		size_t len=fread(pcWriteBuffer,sizeof(char),SHELL_MAX_OUTPUT_BUFFER_SIZE,fd);
+		//read no more than xWriteBufferLen
+		size_t len=read_fs(pcWriteBuffer,sizeof(char),xWriteBufferLen,fd);
 
 		if(len == 0){
 			//error
 		}else {
-			xWriteBufferLen = len;
 		}
 	}
+
+	close_fs(fd);
 
 	return pdFALSE;
 }
@@ -52,18 +71,26 @@ static BaseType_t cat_callback(char *pcWriteBuffer, size_t xWriteBufferLen, argv
 static BaseType_t cd_callback(char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc  )
 {
 
-	/*if(!chdir(arg[1])){
+	if(arg[1][0] == '/'){
+		strcpy(path_buff,arg[1]);
+	}else{
+		getcwd_fs(path_buff,sizeof(path_buff));
+
+		sprintf(path_buff,"%s/%s",path_buff,arg[1]);
+	}
+
+	if(!chdir_fs(path_buff)){
 		//success
 	}else{
 		//error
-	}*/
+	}
 	return pdFALSE;
 }
 
 static BaseType_t mkdir_callback(char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc  )
 {
 
-	if(!mkdir(arg[1],0)){
+	if(!mkdir_fs(arg[1],0)){
 		//success
 	}else{
 		//error
@@ -72,15 +99,10 @@ static BaseType_t mkdir_callback(char *pcWriteBuffer, size_t xWriteBufferLen, ar
 	return pdFALSE;
 }
 
-
-static char *
-getcwd (char *buf, size_t size){
-	return NULL;
-}
-
 static BaseType_t cwd_callback(char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc  )
 {
 
-	getcwd(pcWriteBuffer,SHELL_MAX_OUTPUT_BUFFER_SIZE);
+	getcwd_fs(pcWriteBuffer,xWriteBufferLen);
 	return pdFALSE;
 }
+
