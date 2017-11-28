@@ -32,4 +32,5 @@ extern uint8_t platform_write(const char* str, size_t len,void* param) __attribu
 
 extern uint8_t platform_read(char* str,uint32_t* len, void* param) __attribute__ ((weak));
 
+
 #endif /* PLATFORM_PLATFORM_H_ */

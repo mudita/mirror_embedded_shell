@@ -17,7 +17,7 @@
 
 
 char  platform_shell_BS = '\b';
-char* platform_shell_NEWLINE = "\r\n";
+char* platform_shell_NEWLINE = "\n";
 char* platform_shell_ARROW_LEFT = "D";
 char* platform_shell_ARROW_RIGHT = "C";
 char* platform_shell_ARROW_UP = "A";
@@ -33,13 +33,13 @@ void platform_init()
 
 uint8_t platform_write(const char* str, size_t len,void* param)
 {
-	fputs(str,stdout);
+	fwrite(str,1,len,stdout);
 	return 0;
 }
 
 uint8_t platform_read(char* str,uint32_t* len, void* param)
 {
-	if(fgets(str,SHELL_READ_BUFFER_LEN,stdin)){
+	if(fgets(str,SHELL_READ_BUFFER_LEN,stdin) == NULL){
 		*len =0;
 		return 0;
 	}
