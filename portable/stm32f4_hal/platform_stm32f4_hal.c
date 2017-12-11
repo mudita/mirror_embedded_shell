@@ -1,5 +1,5 @@
 /*
- * platform_stm32f4_hal.c
+ * portable_stm32f4_hal.c
  *
  *  Created on: 24 Nov 2017
  *      Author: mati
@@ -75,14 +75,14 @@ inline int closedir_dummy(DIR *dirp)
 static UART_HandleTypeDef uart_handle;
 
 
-char  platform_shell_BS = '\b';
-char* platform_shell_NEWLINE = "\r\n";
-char* platform_shell_ARROW_LEFT = "D";
-char* platform_shell_ARROW_RIGHT = "C";
-char* platform_shell_ARROW_UP = "A";
-char* platform_shell_ARROW_DOWN = "B";
-char* platform_shell_start_of_escape_seq = "\e";
-char* platform_shell_CLEAR_LINE ="2K";
+char  portable_shell_BS = '\b';
+char* portable_shell_NEWLINE = "\r\n";
+char* portable_shell_ARROW_LEFT = "D";
+char* portable_shell_ARROW_RIGHT = "C";
+char* portable_shell_ARROW_UP = "A";
+char* portable_shell_ARROW_DOWN = "B";
+char* portable_shell_start_of_escape_seq = "\e";
+char* portable_shell_CLEAR_LINE ="2K";
 
 
 static void portable_uart_init(uint32_t baudrate);

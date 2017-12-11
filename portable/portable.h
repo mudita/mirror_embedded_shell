@@ -8,7 +8,10 @@
 #ifndef EMBEDDED_SHELL_PORTABLE_PORTABLE_H_
 #define EMBEDDED_SHELL_PORTABLE_PORTABLE_H_
 
+#include <stdint.h>
+#include <stddef.h>
 #include "shell_conf.h"
+
 
 /* Codes below are platform/device specific.*/
 char  portable_shell_BS;
