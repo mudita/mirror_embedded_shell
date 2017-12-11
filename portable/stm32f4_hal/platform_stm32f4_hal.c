@@ -85,16 +85,16 @@ char* platform_shell_start_of_escape_seq = "\e";
 char* platform_shell_CLEAR_LINE ="2K";
 
 
-static void platform_uart_init(uint32_t baudrate);
+static void portable_uart_init(uint32_t baudrate);
 
 
 
-void platform_init()
+void portable_init()
 {
-	platform_uart_init(230400);
+	portable_uart_init(230400);
 }
 
-static void platform_uart_init(uint32_t baudrate)
+static void portable_uart_init(uint32_t baudrate)
 {
 
 	 RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN;
@@ -137,12 +137,12 @@ static void platform_uart_init(uint32_t baudrate)
 
 }
 
-uint8_t platform_write(const char* str, size_t len,void* param)
+uint8_t portable_write(const char* str, size_t len,void* param)
 {
 	HAL_UART_Transmit(&uart_handle,str,len,1024);
 }
 
-uint8_t platform_read(char* str,uint32_t* len, void* param)
+uint8_t portable_read(char* str,uint32_t* len, void* param)
 {
 	*len = 1;
 	HAL_UART_Receive(&uart_handle,str,*len,0xffffffff);

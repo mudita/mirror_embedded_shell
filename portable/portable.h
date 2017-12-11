@@ -21,6 +21,10 @@ char* portable_shell_start_of_escape_seq;
 char* portable_shell_CLEAR_LINE;
 
 
+uint8_t portable_write(const char* str, size_t len,void* param);
+uint8_t portable_read(char* str,uint32_t* len, void* param);
+void portable_init();
+
 #if (SHELL_USE_FS == 1)
 /**
  * Please define

@@ -16,6 +16,7 @@
 #include "history_list.h"
 #include "FreeRTOS_CLI.h"
 #include "common.h"
+#include "portable.h"
 
 #define SHOW_PASSWORD	0
 
@@ -115,6 +116,9 @@ sherr_t shell_Init(shell_t* shell, size_t linebuf_len) {
 		shell_RegisterCmd(&fs_cmds_tab[cnt]);
 	}
 #endif
+
+	portable_init();
+	shell_RegisterIOFunctions(shell,portable_write,portable_read);
 
 	linebuff_temp = calloc(shell->line_buff_size,sizeof(char));
 
