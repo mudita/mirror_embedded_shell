@@ -7,9 +7,11 @@
 
 
 #include <stdio.h>
-#include "../platform/platform.h"
 #include <string.h>
 #include "fs_cmds.h"
+#include "portable.h"
+
+#if (SHELL_USE_FS == 1)
 
 static BaseType_t cwd_callback(char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc  );
 static BaseType_t ls_callback(char *pcWriteBuffer, size_t xWriteBufferLen, argv arg, size_t argc  );
@@ -106,3 +108,4 @@ static BaseType_t cwd_callback(char *pcWriteBuffer, size_t xWriteBufferLen, argv
 	return pdFALSE;
 }
 
+#endif

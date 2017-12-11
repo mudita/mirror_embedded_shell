@@ -5,18 +5,16 @@
  *      Author: MateuszPiesta
  */
 
-#include <cmds/common_cmds.h>
-#include <cmds/fs_cmds.h>
+#include <common_cmds.h>
+#include <fs_cmds.h>
 #include "shell.h"
 #include "shell_conf.h"
-#include "shell_platform_conf.h"
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include "history_list.h"
 #include "FreeRTOS_CLI.h"
-#include "platform/platform.h"
 #include "common.h"
 
 #define SHOW_PASSWORD	0
@@ -76,11 +74,6 @@ static char* linebuff_temp = NULL;
 extern char shell_password[SHELL_MAX_PASSWORD_LEN];
 extern auth_action auth_state;
 
-void shell_InitPlatform(shell_t* shell)
-{
-	platform_init();
-	shell_RegisterIOFunctions(shell,platform_write,platform_read);
-}
 
 sherr_t shell_Init(shell_t* shell, size_t linebuf_len) {
 
@@ -97,12 +90,12 @@ sherr_t shell_Init(shell_t* shell, size_t linebuf_len) {
 	history_list_Init(&history,SHELL_CMD_HISTORY_DEPTH);
 
 	shell->line_prompt = (char*) shell_prompt;
-	shell->bs_code = (char*) &platform_shell_BS;
-	shell->newline_code = (char*) platform_shell_NEWLINE;
-	shell->arrowd_code = (char*) platform_shell_ARROW_DOWN;
-	shell->arrowl_code = (char*) platform_shell_ARROW_LEFT;
-	shell->arrowr_code = (char*) platform_shell_ARROW_RIGHT;
-	shell->arrowu_code = (char*) platform_shell_ARROW_UP;
+	shell->bs_code = (char*) &portable_shell_BS;
+	shell->newline_code = (char*) portable_shell_NEWLINE;
+	shell->arrowd_code = (char*) portable_shell_ARROW_DOWN;
+	shell->arrowl_code = (char*) portable_shell_ARROW_LEFT;
+	shell->arrowr_code = (char*) portable_shell_ARROW_RIGHT;
+	shell->arrowu_code = (char*) portable_shell_ARROW_UP;
 
 	auth_state = AUTH_IN_PROGRESS;
 
@@ -121,11 +114,6 @@ sherr_t shell_Init(shell_t* shell, size_t linebuf_len) {
 	for(cnt=0;cnt<fs_cmds_tab_size;cnt++){
 		shell_RegisterCmd(&fs_cmds_tab[cnt]);
 	}
-#endif
-
-
-#ifndef PLATFORM_EXT_IMPLEMENTATION
-	shell_InitPlatform(shell);
 #endif
 
 	linebuff_temp = calloc(shell->line_buff_size,sizeof(char));
@@ -342,14 +330,14 @@ static void shell_write_prompt(shell_t* shell) {
 
 static void shell_write_escape_sequence(shell_t* shell,const char* byte) {
 
-	char buff[4] = { *platform_shell_start_of_escape_seq, '[', 0,'\0' };
+	char buff[4] = { *portable_shell_start_of_escape_seq, '[', 0,'\0' };
 
 	buff[2] = *byte;
 	shell->write(buff, sizeof(buff),shell->param);
 }
 static void shell_write_clearline(shell_t* shell) {
 
-	char buff[5] = { *platform_shell_start_of_escape_seq, '[', *platform_shell_CLEAR_LINE,*(platform_shell_CLEAR_LINE+1),'\0' };
+	char buff[5] = { *portable_shell_start_of_escape_seq, '[', *portable_shell_CLEAR_LINE,*(portable_shell_CLEAR_LINE+1),'\0' };
 
 	shell->write(buff, sizeof(buff),shell->param);
 }
@@ -453,7 +441,7 @@ static void shell_auth_passed(shell_t* shell,char byte)
 	/*
 	 * Start of escape sequence
 	 */
-	if (byte == *platform_shell_start_of_escape_seq){
+	if (byte == *portable_shell_start_of_escape_seq){
 		escape_sequence_start = 1;
 	}
 	else if ((escape_sequence_start == 1) && (byte == '[')) {

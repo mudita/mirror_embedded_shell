@@ -37,7 +37,7 @@
 /**
  * Set to 1 if you want to use file system commands
  */
-#define SHELL_USE_FS	0
+#define SHELL_USE_FS	1
 
 #ifndef SHELL_NO_FREERTOS
 #include "FreeRTOS.h"

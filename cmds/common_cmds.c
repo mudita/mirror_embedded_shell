@@ -5,11 +5,10 @@
  *      Author: mati
  */
 
-#include "cmds/common_cmds.h"
+#include "common_cmds.h"
 #include <stdio.h>
 #include <string.h>
 #include "shell.h"
-#include "shell_platform_conf.h"
 #include "common.h"
 
 
