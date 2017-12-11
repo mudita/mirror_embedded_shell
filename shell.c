@@ -5,8 +5,8 @@
  *      Author: MateuszPiesta
  */
 
-#include <common_cmds.h>
-#include <fs_cmds.h>
+#include <cmds/common_cmds.h>
+#include <cmds/fs_cmds.h>
 #include "shell.h"
 #include "shell_conf.h"
 #include <stdio.h>
