@@ -9,7 +9,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "fs_cmds.h"
-#include "portable.h"
+
+#include "shell_portable.h"
 
 #if (SHELL_USE_FS == 1)
 

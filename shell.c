@@ -16,7 +16,7 @@
 #include "history_list.h"
 #include "FreeRTOS_CLI.h"
 #include "common.h"
-#include "portable.h"
+#include "shell_portable.h"
 
 #define SHOW_PASSWORD	0
 
@@ -161,14 +161,14 @@ void shell_PassParam(shell_t* shell,void* param, size_t param_len)
 
 
  // inserts into subject[] at position pos
-static void append(uint32_t buf_size,char subject[], const char insert[], uint32_t pos) {
+static void append(uint32_t buf_size,char subject[], const char insert[],uint32_t insert_len, uint32_t pos) {
 
 	memset(linebuff_temp,0,buf_size);
 
     strncpy(linebuff_temp, subject, pos); // copy at most first pos characters
     size_t len = strlen(linebuff_temp);
-    strcpy(linebuff_temp+len, insert); // copy all of insert[] at the end
-    len += strlen(insert);  // increase the length by length of insert[]
+    strncpy(linebuff_temp+len, insert,insert_len); // copy all of insert[] at the end
+    len += insert_len;  // increase the length by length of insert[]
     strcpy(linebuff_temp+len, subject+pos); // copy the rest
 
     strcpy(subject, linebuff_temp);   // copy it back to subject
@@ -201,7 +201,7 @@ static lbuff_e shell_MngtLineBuff(shell_t* shell,const char* str, uint32_t str_l
 			}else{
 				ret = LINE_BUFF_OK;
 
-				append(shell->line_buff_size,shell->line_buff,str,shell->line_buff_pos);
+				append(shell->line_buff_size,shell->line_buff,str,str_len,shell->line_buff_pos);
 				shell_write_clearline(shell);
 				shell->write("\r",1,shell->param);
 				shell_write_prompt(shell);

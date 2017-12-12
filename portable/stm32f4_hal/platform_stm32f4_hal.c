@@ -6,8 +6,7 @@
  */
 
 
-#include "portable.h"
-
+#include "shell_portable.h"
 #include "shell.h"
 
 #include "stm32f4xx_hal.h"

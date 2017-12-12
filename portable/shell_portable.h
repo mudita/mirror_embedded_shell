@@ -1,12 +1,12 @@
 /*
- * portable.h
+ * shell_portable.h
  *
  *  Created on: Dec 11, 2017
  *      Author: mati
  */
 
-#ifndef EMBEDDED_SHELL_PORTABLE_PORTABLE_H_
-#define EMBEDDED_SHELL_PORTABLE_PORTABLE_H_
+#ifndef EMBEDDED_SHELL_PORTABLE_SHELL_PORTABLE_H_
+#define EMBEDDED_SHELL_PORTABLE_SHELL_PORTABLE_H_
 
 #include <stdint.h>
 #include <stddef.h>
@@ -49,4 +49,4 @@ void portable_init();
 #define readdir_fs(__dir)						readdir_dummy(__dir)
 #endif
 
-#endif /* EMBEDDED_SHELL_PORTABLE_PORTABLE_H_ */
+#endif /* EMBEDDED_SHELL_PORTABLE_SHELL_PORTABLE_H_ */
